@@ -332,8 +332,11 @@ A single, clean, edited transcript from start to finish with no chunk markers or
 try:
     success, response_edited, error = retry_api_call(
         client.models.generate_content,
-        model="gemini-2.5-pro",
-        contents=[editing_prompt]
+        model="gemini-2.5-flash",
+        contents=[editing_prompt],
+        config=GenerateContentConfig(
+            thinking_config={'thinking_budget': 0}  # Disable thinking for Flash
+        )
     )
     
     if not success:

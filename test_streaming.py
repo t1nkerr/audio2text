@@ -4,29 +4,11 @@ from keys.creds import GEMINI_API_KEY
 import time
 
 GEMINI_TIMEOUT = 10 * 60 * 1000  # 10 minutes
-MAX_RETRIES = 1
 
 client = genai.Client(
     api_key=GEMINI_API_KEY, 
     http_options=HttpOptions(timeout=GEMINI_TIMEOUT)
 )
-
-# Helper function for retry logic
-def retry_api_call(func, *args, max_retries=MAX_RETRIES, **kwargs):
-    """Retry an API call up to max_retries times."""
-    for attempt in range(max_retries + 1):
-        try:
-            result = func(*args, **kwargs)
-            return True, result, None
-        except Exception as e:
-            if attempt < max_retries:
-                print(f"⚠️  Attempt {attempt + 1} failed: {e}")
-                print(f"🔄 Retrying... (attempt {attempt + 2}/{max_retries + 1})")
-                time.sleep(2)
-            else:
-                print(f"❌ All {max_retries + 1} attempts failed")
-                return False, None, e
-    return False, None, Exception("Unexpected retry loop exit")
 
 # Define chunks
 chunks = [
@@ -35,7 +17,7 @@ chunks = [
 ]
 
 print("="*60)
-print("STREAMING TEST - Avoiding Connection Timeouts")
+print("STREAMING TEST - Does it bypass output limits?")
 print("="*60)
 
 # Read all chunk transcripts
@@ -68,7 +50,8 @@ for ct in chunk_transcripts:
     combined_transcript += ct['text']
 
 total_words = len(combined_transcript.split())
-print(f"\n📊 Combined: {total_words:,} words (~{total_words * 1.3:.0f} tokens)")
+print(f"\n📊 Combined: {total_words:,} words (~{total_words * 1.3:.0f} input tokens)")
+print(f"   Expected output: ~{total_words * 0.95:.0f} words (slightly less after cleanup)")
 
 # Define editing prompt
 complex_prompt = f"""Your goal is to edit the podcast transcript to improve readability. The transcript was generated in multiple chunks with markers.
@@ -98,165 +81,216 @@ A single, clean, edited transcript from start to finish with no chunk markers or
 """
 
 # # =============================================================================
-# # TEST 1: Non-streaming (baseline - should fail)
+# # TEST 1: gemini-2.5-flash with streaming - NO OUTPUT LIMIT
 # # =============================================================================
 # print("\n" + "="*60)
-# print("TEST 1: gemini-2.5-flash - Non-streaming (baseline)")
+# print("TEST 1: gemini-2.5-flash - Streaming, NO limit")
 # print("="*60)
 
-# print(f"\n📝 Testing without streaming (expect failure)...")
-# success, response, error = retry_api_call(
-#     client.models.generate_content,
-#     model="gemini-2.5-flash",
-#     contents=[complex_prompt],
-#     config=GenerateContentConfig(max_output_tokens=8000)
-# )
+# print(f"\n📝 Testing streaming with NO max_output_tokens...")
+# try:
+#     full_response = ""
+#     chunk_count = 0
+    
+#     stream = client.models.generate_content_stream(
+#         model="gemini-2.5-flash",
+#         contents=[complex_prompt]
+#         # NO config - let it generate as much as possible
+#     )
+    
+#     print("🌊 Streaming started...")
+#     for chunk in stream:
+#         if chunk.text:
+#             full_response += chunk.text
+#             chunk_count += 1
+#             if chunk_count % 20 == 0:
+#                 words_so_far = len(full_response.split())
+#                 print(f"  📦 {chunk_count} chunks (~{words_so_far:,} words, ~{words_so_far * 1.3:.0f} tokens)...")
+    
+#     if full_response:
+#         output_words = len(full_response.split())
+#         output_tokens = output_words * 1.3
+#         print(f"✅ SUCCESS!")
+#         print(f"  Total chunks: {chunk_count}")
+#         print(f"  Output: {output_words:,} words (~{output_tokens:.0f} tokens)")
+        
+#         # Check completeness
+#         last_line = full_response.strip().split('\n')[-1]
+#         if "bye" in full_response.lower()[-200:]:
+#             print(f"  🎯 COMPLETE - Found ending!")
+#         elif output_words > 9000:
+#             print(f"  🎯 COMPLETE - Got expected length!")
+#         else:
+#             print(f"  ⚠️  TRUNCATED - Only got {output_words:,} of expected ~9,500 words")
+#             print(f"  Last line: {last_line[:80]}...")
+        
+#         with open("transcript/test1_flash25_no_limit.txt", "w") as f:
+#             f.write(full_response)
+#         print("✓ Saved: transcript/test1_flash25_no_limit.txt")
+#     else:
+#         print("⚠️  Empty response")
+        
+# except Exception as e:
+#     print(f"❌ FAILED: {e}")
 
-# if success and response and response.text:
-#     print("✅ SUCCESS (unexpected!)")
-#     print(f"  Output: {len(response.text.split())} words")
-# else:
-#     print(f"❌ FAILED as expected: {error if error else 'Empty response'}")
+# # =============================================================================
+# # TEST 2: gemini-2.5-flash with thinking DISABLED - NO OUTPUT LIMIT
+# # =============================================================================
+# print("\n" + "="*60)
+# print("TEST 2: gemini-2.5-flash - Thinking OFF, NO limit")
+# print("="*60)
+
+# print(f"\n📝 Testing with thinking disabled...")
+# try:
+#     full_response = ""
+#     chunk_count = 0
+    
+#     stream = client.models.generate_content_stream(
+#         model="gemini-2.5-flash",
+#         contents=[complex_prompt],
+#         config=GenerateContentConfig(
+#             thinking_config={'thinking_budget': 0}  # Disable thinking for Flash
+#         )
+#     )
+    
+#     print("🌊 Streaming with thinking disabled...")
+#     for chunk in stream:
+#         if chunk.text:
+#             full_response += chunk.text
+#             chunk_count += 1
+#             if chunk_count % 20 == 0:
+#                 words_so_far = len(full_response.split())
+#                 print(f"  📦 {chunk_count} chunks (~{words_so_far:,} words, ~{words_so_far * 1.3:.0f} tokens)...")
+    
+#     if full_response:
+#         output_words = len(full_response.split())
+#         output_tokens = output_words * 1.3
+#         print(f"✅ SUCCESS!")
+#         print(f"  Total chunks: {chunk_count}")
+#         print(f"  Output: {output_words:,} words (~{output_tokens:.0f} tokens)")
+        
+#         # Check completeness
+#         if "bye" in full_response.lower()[-200:]:
+#             print(f"  🎯 COMPLETE - Found ending!")
+#         elif output_words > 9000:
+#             print(f"  🎯 COMPLETE - Got expected length!")
+#         else:
+#             print(f"  ⚠️  TRUNCATED - Only got {output_words:,} of expected ~9,500 words")
+        
+#         with open("transcript/test2_flash25_no_thinking.txt", "w") as f:
+#             f.write(full_response)
+#         print("✓ Saved: transcript/test2_flash25_no_thinking.txt")
+#     else:
+#         print("⚠️  Empty response")
+        
+# except Exception as e:
+#     print(f"❌ FAILED: {e}")
+#     print(f"   (Note: thinking_config may not be supported in this SDK version)")
+
+# # =============================================================================
+# # TEST 3: gemini-2.0-flash-001 - NO OUTPUT LIMIT (control)
+# # =============================================================================
+# print("\n" + "="*60)
+# print("TEST 3: gemini-2.0-flash-001 - Streaming, NO limit")
+# print("="*60)
+
+# print(f"\n📝 Testing 2.0-flash-001 with no limit (control)...")
+# try:
+#     full_response = ""
+#     chunk_count = 0
+    
+#     stream = client.models.generate_content_stream(
+#         model="gemini-2.0-flash-001",
+#         contents=[complex_prompt]
+#         # NO config - let it generate as much as possible
+#     )
+    
+#     print("🌊 Streaming with 2.0-flash-001...")
+#     for chunk in stream:
+#         if chunk.text:
+#             full_response += chunk.text
+#             chunk_count += 1
+#             if chunk_count % 20 == 0:
+#                 words_so_far = len(full_response.split())
+#                 print(f"  📦 {chunk_count} chunks (~{words_so_far:,} words, ~{words_so_far * 1.3:.0f} tokens)...")
+    
+#     if full_response:
+#         output_words = len(full_response.split())
+#         output_tokens = output_words * 1.3
+#         print(f"✅ SUCCESS!")
+#         print(f"  Total chunks: {chunk_count}")
+#         print(f"  Output: {output_words:,} words (~{output_tokens:.0f} tokens)")
+        
+#         # Check completeness
+#         if "bye" in full_response.lower()[-200:]:
+#             print(f"  🎯 COMPLETE - Found ending!")
+#         elif output_words > 9000:
+#             print(f"  🎯 COMPLETE - Got expected length!")
+#         else:
+#             print(f"  ⚠️  TRUNCATED - Only got {output_words:,} of expected ~9,500 words")
+        
+#         with open("transcript/test3_flash20_no_limit.txt", "w") as f:
+#             f.write(full_response)
+#         print("✓ Saved: transcript/test3_flash20_no_limit.txt")
+#     else:
+#         print("⚠️  Empty response")
+        
+# except Exception as e:
+#     print(f"❌ FAILED: {e}")
+
+# # =============================================================================
+# # SUMMARY
+# # =============================================================================
+# print("\n" + "="*60)
+# print("FINAL ANALYSIS")
+# print("="*60)
+# print("\nThis test determines:")
+# print("  1. Can streaming deliver outputs > 8K tokens?")
+# print("  2. Is there a free tier hard limit?")
+# print("  3. Does disabling thinking help with long outputs?")
+# print("\nIf all outputs are ~9,500+ words:")
+# print("  → NO hard limit, streaming works!")
+# print("\nIf all outputs stop at ~6,000-8,000 words:")
+# print("  → Confirmed: 8K free tier limit exists")
+# print("\nCheck the saved transcripts to see where they end.")
+
 
 # =============================================================================
-# TEST 2: Streaming with gemini-2.5-flash
+# TEST 4: gemini-2.5-flash - NO streaming, thinking OFF
 # =============================================================================
 print("\n" + "="*60)
-print("TEST 2: gemini-2.5-flash - WITH streaming")
+print("TEST 4: gemini-2.5-flash - NO streaming, thinking OFF")
 print("="*60)
 
-print(f"\n📝 Testing WITH streaming + 8000 token limit...")
+print(f"\n📝 Testing thinking disabled WITHOUT streaming...")
 try:
-    full_response = ""
-    chunk_count = 0
-    
-    stream = client.models.generate_content_stream(
-        model="gemini-2.5-flash",
-        contents=[complex_prompt],
-        config=GenerateContentConfig(max_output_tokens=8000)
-    )
-    
-    print("🌊 Streaming started...")
-    for chunk in stream:
-        if chunk.text:
-            full_response += chunk.text
-            chunk_count += 1
-            # Print progress every 20 chunks
-            if chunk_count % 20 == 0:
-                print(f"  📦 Received {chunk_count} chunks (~{len(full_response.split())} words so far)...")
-    
-    if full_response:
-        print(f"✅ SUCCESS!")
-        print(f"  Total chunks: {chunk_count}")
-        print(f"  Output: {len(full_response.split())} words (~{len(full_response.split()) * 1.3:.0f} tokens)")
-        
-        with open("transcript/test_streaming_flash25.txt", "w") as f:
-            f.write(full_response)
-        print("✓ Saved: transcript/test_streaming_flash25.txt")
-    else:
-        print("⚠️  Streaming completed but response is empty")
-        
-except Exception as e:
-    print(f"❌ FAILED: {e}")
-
-# =============================================================================
-# TEST 3: Streaming with gemini-2.5-flash + disable thinking
-# =============================================================================
-print("\n" + "="*60)
-print("TEST 3: gemini-2.5-flash - Streaming + No Thinking")
-print("="*60)
-
-print(f"\n📝 Testing with thinking disabled (Flash only)...")
-try:
-    full_response = ""
-    chunk_count = 0
-    
-    # Note: thinkingConfig might not be available in all SDK versions
-    # This is experimental based on the suggestion
-    stream = client.models.generate_content_stream(
+    response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=[complex_prompt],
         config=GenerateContentConfig(
-            max_output_tokens=8000,
-            # thinking_config={'thinking_budget': 0}  # Uncomment if available
+            thinking_config={'thinking_budget': 0}  # Disable thinking
         )
     )
     
-    print("🌊 Streaming with thinking disabled...")
-    for chunk in stream:
-        if chunk.text:
-            full_response += chunk.text
-            chunk_count += 1
-            if chunk_count % 20 == 0:
-                print(f"  📦 {chunk_count} chunks (~{len(full_response.split())} words)...")
-    
-    if full_response:
+    if response and response.text:
+        output_words = len(response.text.split())
+        output_tokens = output_words * 1.3
         print(f"✅ SUCCESS!")
-        print(f"  Total chunks: {chunk_count}")
-        print(f"  Output: {len(full_response.split())} words")
+        print(f"  Output: {output_words:,} words (~{output_tokens:.0f} tokens)")
         
-        with open("transcript/test_streaming_no_thinking.txt", "w") as f:
-            f.write(full_response)
-        print("✓ Saved: transcript/test_streaming_no_thinking.txt")
+        # Check completeness
+        if "bye" in response.text.lower()[-200:]:
+            print(f"  🎯 COMPLETE - Found ending!")
+        elif output_words > 9000:
+            print(f"  🎯 COMPLETE - Got expected length!")
+        else:
+            print(f"  ⚠️  TRUNCATED - Only got {output_words:,} of expected ~9,500 words")
+        
+        with open("transcript/test4_no_stream_no_thinking.txt", "w") as f:
+            f.write(response.text)
+        print("✓ Saved: transcript/test4_no_stream_no_thinking.txt")
     else:
         print("⚠️  Empty response")
         
 except Exception as e:
     print(f"❌ FAILED: {e}")
-
-# =============================================================================
-# TEST 4: Streaming with gemini-2.0-flash-001 (known working model)
-# =============================================================================
-print("\n" + "="*60)
-print("TEST 4: gemini-2.0-flash-001 - Streaming (control)")
-print("="*60)
-
-print(f"\n📝 Testing streaming with 2.0-flash-001...")
-try:
-    full_response = ""
-    chunk_count = 0
-    
-    stream = client.models.generate_content_stream(
-        model="gemini-2.0-flash-001",
-        contents=[complex_prompt],
-        config=GenerateContentConfig(max_output_tokens=8000)
-    )
-    
-    print("🌊 Streaming with 2.0-flash-001...")
-    for chunk in stream:
-        if chunk.text:
-            full_response += chunk.text
-            chunk_count += 1
-            if chunk_count % 20 == 0:
-                print(f"  📦 {chunk_count} chunks (~{len(full_response.split())} words)...")
-    
-    if full_response:
-        print(f"✅ SUCCESS!")
-        print(f"  Total chunks: {chunk_count}")
-        print(f"  Output: {len(full_response.split())} words")
-        
-        with open("transcript/test_streaming_flash20.txt", "w") as f:
-            f.write(full_response)
-        print("✓ Saved: transcript/test_streaming_flash20.txt")
-    else:
-        print("⚠️  Empty response")
-        
-except Exception as e:
-    print(f"❌ FAILED: {e}")
-
-# =============================================================================
-# SUMMARY
-# =============================================================================
-print("\n" + "="*60)
-print("STREAMING TEST SUMMARY")
-print("="*60)
-print("\nKey Findings:")
-print("  • Streaming keeps connection alive during long generations")
-print("  • Still limited to 8,192 output tokens total")
-print("  • Prevents 'server disconnected' errors from timeouts")
-print("\nIf TEST 2/3/4 succeed:")
-print("  → Use streaming for all long-output tasks")
-print("  → Set max_output_tokens=8000 to stay under limit")
-print("\nIf only TEST 4 succeeds:")
-print("  → Stick with gemini-2.0-flash-001 model")
-print("\nCheck transcript/ directory for outputs.")
