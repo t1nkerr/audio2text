@@ -117,10 +117,7 @@ complex_prompt = f"""Your goal is to edit the podcast transcript to improve read
    - Keep the same speaker label format 
    - No markdown formatting
 
-#OUTPUT:
-A single, clean, edited transcript from start to finish with no chunk markers or duplicate content.
-
-#CHUNKS TO STITCH AND EDIT:
+#transcript:
 {combined_transcript}
 """
 

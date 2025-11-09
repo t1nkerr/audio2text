@@ -3,12 +3,11 @@ from google.genai.types import HttpOptions, GenerateContentConfig
 from keys.creds import GEMINI_API_KEY
 import time
 
-GEMINI_TIMEOUT = 10 * 60 * 1000  # 10 minutes
+
 MAX_RETRIES = 2  
 
 client = genai.Client(
-    api_key=GEMINI_API_KEY, 
-    http_options=HttpOptions(timeout=GEMINI_TIMEOUT)
+    api_key=GEMINI_API_KEY
 )
 
 # Helper function for retry logic
@@ -172,104 +171,152 @@ print("💡 Next step: Compile and edit transcripts (separate script)")
 
 
 # =============================================================================
-# EDITING PHASE: Stitch chunks together and clean up transcript
+# EDITING PHASE: Clean up each transcript individually
 # =============================================================================
 
 print(f"\n{'='*60}")
-print("EDITING PHASE: Combining and cleaning transcripts")
+print("EDITING PHASE: Cleaning individual transcripts")
 print(f"{'='*60}")
 
-# Read all chunk transcripts
-chunk_transcripts = []
+# Edit each chunk transcript individually
+edited_chunks = []
 for i, chunk in enumerate(chunks):
-    transcript_filename = f"transcript/{chunk['name']}_verbatim.txt"
+    verbatim_filename = f"transcript/{chunk['name']}_verbatim.txt"
+    edited_filename = f"transcript/{chunk['name']}_edited.txt"
+    
     try:
-        with open(transcript_filename, "r") as f:
+        with open(verbatim_filename, "r") as f:
             chunk_text = f.read()
-            chunk_transcripts.append({
-                "number": i + 1,
-                "name": chunk['name'],
-                "text": chunk_text,
-                "start": chunk['start'],
-                "end": chunk['end']
-            })
-        print(f"✓ Loaded: {transcript_filename}")
+        print(f"✓ Loaded: {verbatim_filename}")
     except FileNotFoundError:
-        print(f"❌ Missing: {transcript_filename}")
+        print(f"❌ Missing: {verbatim_filename}")
         exit(1)
+    
+    # Individual editing prompt
+    editing_prompt = f"""Your goal is to edit this podcast transcript chunk to improve readability while maintaining accuracy.
 
-# Combine transcripts with markers
-combined_transcript = ""
-for ct in chunk_transcripts:
-    combined_transcript += f"\n\n{'='*60}\n"
-    combined_transcript += f"CHUNK {ct['number']} (Minutes {ct['start']:.2f} - {ct['end']:.2f})\n"
-    combined_transcript += f"{'='*60}\n\n"
-    combined_transcript += ct['text']
+#instructions:
+- Remove filler words
+- Remove false starts, unnecessary repetitions, and miscellaneous noise
+- Keep the same speaker labels and format
+- Correct misspellings 
+- No markdown formatting
+- Make other edits when necessary to improve readability and coherence
 
-print(f"\n📝 Generating edited transcript...")
-
-# Editing prompt
-editing_prompt = f"""Your goal is to edit the podcast transcript to improve readability. The transcript was generated in multiple chunks with markers.
-
-#YOUR TASK:
-1. STITCH the chunks together into one seamless transcript
-   - Remove duplicate content from the 10-second overlaps between chunks
-   - Ensure smooth transitions between chunks
-   - Fix any speaker inconsistencies across chunks (use the same name for each person throughout)
-
-2. CLEAN UP the transcript:
-   - Remove filler words (um, uh, you know, like, etc.)
-   - Remove false starts, unnecessary repetitions, and miscellaneous noise
-   - Correct misspellings and grammatical errors
-   - Improve readability and coherence
-
-3. MAINTAIN FORMAT:
-   - Keep the same speaker label format (Speaker Name: followed by their text)
-   - No markdown formatting
-   - Keep paragraph breaks where natural
-
-#OUTPUT:
-A single, clean, edited transcript from start to finish with no chunk markers or duplicate content.
-
-#CHUNKS TO STITCH AND EDIT:
-{combined_transcript}
+#TRANSCRIPT TO EDIT:
+{chunk_text}
 """
-
-try:
-    success, response_edited, error = retry_api_call(
+    
+    print(f"📝 Editing {chunk['name']}...")
+    success, response, error = retry_api_call(
         client.models.generate_content,
         model="gemini-2.5-flash",
         contents=[editing_prompt],
         config=GenerateContentConfig(
-            thinking_config={'thinking_budget': 0}  # Disable thinking for Flash
+            thinking_config={'thinking_budget': 0}
         )
     )
     
     if not success:
-        print(f"❌ Error during editing after retries: {error}")
+        print(f"❌ Error editing {chunk['name']} after retries: {error}")
         exit(1)
     
-    # Save the final edited transcript
-    final_filename = "transcript/full_transcript_edited.txt"
-    with open(final_filename, "w") as f:
-        f.write(response_edited.text)
+    edited_text = response.text
     
-    print(f"✓ Edited transcript saved: {final_filename}")
+    # Save edited chunk
+    with open(edited_filename, "w") as f:
+        f.write(edited_text)
+    print(f"✓ Saved: {edited_filename}")
+    
+    edited_chunks.append({
+        "number": i + 1,
+        "name": chunk['name'],
+        "text": edited_text,
+        "start": chunk['start'],
+        "end": chunk['end']
+    })
 
-    # Also save the combined verbatim (with chunk markers) for reference
-    verbatim_filename = "transcript/full_transcript_verbatim.txt"
-    with open(verbatim_filename, "w") as f:
-        f.write(combined_transcript)
-    print(f"✓ Combined verbatim saved: {verbatim_filename}")
-    
-except Exception as e:
-    print(f"❌ Error during editing: {e}")
+print(f"\n✅ All chunks edited individually")
+
+# =============================================================================
+# STITCHING PHASE: Combine edited transcripts seamlessly
+# =============================================================================
+
+print(f"\n{'='*60}")
+print("STITCHING PHASE: Combining edited transcripts")
+print(f"{'='*60}")
+
+# Combine edited transcripts with markers for the stitching process
+combined_edited = ""
+for ct in edited_chunks:
+    combined_edited += f"\n\n{'='*60}\n"
+    combined_edited += f"CHUNK {ct['number']} (Minutes {ct['start']:.2f} - {ct['end']:.2f})\n"
+    combined_edited += f"{'='*60}\n\n"
+    combined_edited += ct['text']
+
+print(f"📝 Stitching chunks together...")
+
+# Stitching prompt
+stitching_prompt = f"""Your goal is to stitch multiple edited podcast transcript chunks into one seamless, continuous transcript.
+
+#CONTEXT:
+The transcript was generated in multiple chunks with markers. The chunks have already been edited for readability.
+
+#instrucitons
+- Remove duplicate content from the 10-second overlaps between chunks
+- Ensure smooth transitions between chunks
+- Fix any speaker inconsistencies across chunks
+- Don't make other signficant changes to the transcript unless necessary 
+
+#transcript:
+{combined_edited}
+"""
+
+success, response_stitched, error = retry_api_call(
+    client.models.generate_content,
+    model="gemini-2.5-flash",
+    contents=[stitching_prompt],
+    config=GenerateContentConfig(
+        thinking_config={'thinking_budget': 0}
+    )
+)
+
+if not success:
+    print(f"❌ Error during stitching after retries: {error}")
     exit(1)
+
+# Save the final stitched transcript
+final_filename = "transcript/full_transcript_edited.txt"
+with open(final_filename, "w") as f:
+    f.write(response_stitched.text)
+
+print(f"✓ Final stitched transcript saved: {final_filename}")
+
+# Also save the combined verbatim (with chunk markers) for reference
+print(f"📝 Creating combined verbatim reference...")
+combined_verbatim = ""
+for ct in edited_chunks:
+    # Read original verbatim versions
+    verbatim_filename = f"transcript/{ct['name']}_verbatim.txt"
+    with open(verbatim_filename, "r") as f:
+        verbatim_text = f.read()
+    
+    combined_verbatim += f"\n\n{'='*60}\n"
+    combined_verbatim += f"CHUNK {ct['number']} (Minutes {ct['start']:.2f} - {ct['end']:.2f})\n"
+    combined_verbatim += f"{'='*60}\n\n"
+    combined_verbatim += verbatim_text
+
+verbatim_filename = "transcript/full_transcript_verbatim.txt"
+with open(verbatim_filename, "w") as f:
+    f.write(combined_verbatim)
+print(f"✓ Combined verbatim saved: {verbatim_filename}")
 
 print(f"\n{'='*60}")
 print("✅ COMPLETE!")
 print(f"{'='*60}")
 print(f"\n📁 Final outputs:")
 print(f"   - transcript/full_transcript_verbatim.txt (combined, unedited)")
-print(f"   - transcript/full_transcript_edited.txt (stitched and cleaned)")
-print(f"\n💡 Individual chunk transcripts preserved in transcript/chunk_*_verbatim.txt")
+print(f"   - transcript/full_transcript_edited.txt (edited & stitched)")
+print(f"\n📁 Individual files:")
+print(f"   - transcript/chunk_*_verbatim.txt (original transcripts)")
+print(f"   - transcript/chunk_*_edited.txt (edited transcripts)")
