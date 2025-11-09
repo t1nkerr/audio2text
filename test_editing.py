@@ -105,18 +105,17 @@ complex_prompt = f"""Your goal is to edit the podcast transcript to improve read
 1. STITCH the chunks together into one seamless transcript
    - Remove duplicate content from the 10-second overlaps between chunks
    - Ensure smooth transitions between chunks
-   - Fix any speaker inconsistencies across chunks (use the same name for each person throughout)
+   - Fix any speaker inconsistencies across chunks
 
 2. CLEAN UP the transcript:
-   - Remove filler words (um, uh, you know, like, etc.)
-   - Remove false starts, unnecessary repetitions, and miscellaneous noise
-   - Correct misspellings and grammatical errors
-   - Improve readability and coherence
+    - Remove filler words
+    - Remove false starts, unnecessary repetitions, and miscellaneous noise
+    - Correct misspellings 
+    - Make other edits when necessary to improve readability and coherence
 
 3. MAINTAIN FORMAT:
-   - Keep the same speaker label format (Speaker Name: followed by their text)
+   - Keep the same speaker label format 
    - No markdown formatting
-   - Keep paragraph breaks where natural
 
 #OUTPUT:
 A single, clean, edited transcript from start to finish with no chunk markers or duplicate content.
