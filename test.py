@@ -98,7 +98,7 @@ from keys.creds import GEMINI_API_KEY
 import time
 
 GEMINI_TIMEOUT = 10 * 60 * 1000  # 10 minutes
-MAX_RETRIES = 1  # Retry once = 2 attempts total
+MAX_RETRIES = 2  
 
 client = genai.Client(
     api_key=GEMINI_API_KEY, 
@@ -332,7 +332,7 @@ A single, clean, edited transcript from start to finish with no chunk markers or
 try:
     success, response_edited, error = retry_api_call(
         client.models.generate_content,
-        model="gemini-2.5-flash",
+        model="gemini-2.5-pro",
         contents=[editing_prompt]
     )
     
