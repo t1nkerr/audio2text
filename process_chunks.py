@@ -57,27 +57,25 @@ def transcribe_and_edit_chunk(chunk, i, previous_context):
         return None
     
     # Combined prompt - transcribe AND edit in one go
-    base_prompt = """Generate a clean, edited English-language transcript of this podcast segment.
-
-#output format:
-Speaker Name:
-[their text]
-
-Speaker Name:
-[their text]
-
-...
-
-#instructions:
-- Identify speaker names based on the conversation and label them consistently
-- Remove filler words (um, uh, like, you know, etc.)
-- Remove false starts, unnecessary repetitions, and miscellaneous noise
-- Correct misspellings and use proper grammar
-- Only use English alphabet characters unless foreign words are clearly correct
-- No markdown formatting
+    base_prompt = """Generate a English-language transcript of this audio segment. Make the transcript readable and coherent. 
 
 #background:
 The podcast is produced by Trivium China, a consultancy on China policy. The speakers are usually Andrew Polk, Dinny Macmahon, Kendra Schaefer, and occasionally other guests.
+
+#instructions:
+- Remove filler words (um, uh, like, you know, etc.)
+- Remove false starts, unnecessary repetitions, and miscellaneous noise
+- Correct misspellings
+- Make other edits when necessary to improve readability and coherence
+- No markdown formatting. Identify speaker names based on the conversation and label them consistently
+
+#output format:
+Speaker Name:\n[their text]
+
+Speaker Name:\n[their text]
+
+...
+
 """
     
     if i > 0 and previous_context:
@@ -86,13 +84,9 @@ The podcast is produced by Trivium China, a consultancy on China policy. The spe
 #IMPORTANT CONTEXT:
 - This is chunk {i+1} of the podcast, covering minutes {chunk['start']:.2f} - {chunk['end']:.2f}
 - The first {OVERLAP_SECONDS} seconds overlap with the previous chunk to ensure continuity
-- Transcribe the ENTIRE audio segment, including the overlapping portion
 
 #CONTEXT FROM PREVIOUS SEGMENT:
 {previous_context}
-
-#YOUR TASK:
-Use the above context to maintain speaker name consistency and conversation flow, then transcribe and edit this entire audio segment.
 """
     else:
         prompt = base_prompt
