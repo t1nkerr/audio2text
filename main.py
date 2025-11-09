@@ -335,7 +335,7 @@ if __name__ == "__main__":
         transcript, _ = transcribe_chunk(chunk, i, previous_context)
         if transcript is None:
             print(f"❌ Failed to transcribe {chunk['name']}")
-            return
+            exit(1)
         
         # Generate context for next chunk
         if i < len(chunks) - 1:
