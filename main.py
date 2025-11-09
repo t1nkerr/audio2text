@@ -210,7 +210,7 @@ for i, chunk in enumerate(chunks):
     print(f"📝 Editing {chunk['name']}...")
     success, response, error = retry_api_call(
         client.models.generate_content,
-        model="gemini-2.5-flash",
+        model="gemini-2.5-pro",
         contents=[editing_prompt],
         config=GenerateContentConfig(
             thinking_config={'thinking_budget': 0}
@@ -274,7 +274,7 @@ The transcript was generated in multiple chunks with markers. The chunks have al
 
 success, response_stitched, error = retry_api_call(
     client.models.generate_content,
-    model="gemini-2.5-flash",
+    model="gemini-2.5-pro",
     contents=[stitching_prompt],
     config=GenerateContentConfig(
         thinking_config={'thinking_budget': 0}
