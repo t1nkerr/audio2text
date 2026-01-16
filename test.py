@@ -11,11 +11,11 @@ file_obj = get_or_upload_file("audio/sample.flac")
 
 # Single-pass transcription
 print("\n📝 Generating transcript (single-pass)...")
-print(f"Model: gemini-3-pro")
+print(f"Model: gemini-3-flash-preview")
 print(f"This may take a few minutes for a ~52 min file...\n")
 
 response = client.models.generate_content(
-    model="gemini-3-pro",
+    model="gemini-3-flash-preview",
     contents=[SINGLE_PASS_PROMPT, file_obj]
 )
 
