@@ -24,5 +24,14 @@
     "uploaded_at": "2026-01-16T07:44:36.933817+00:00",
     "expires_at": "2026-01-18T07:44:36.115345+00:00",
     "size_bytes": 116352653
+  },
+  "audio/episode_148.mp3": {
+    "file_path": "audio/episode_148.mp3",
+    "uploaded_path": "audio/episode_148.mp3",
+    "name": "files/3pkhyzkh0wta",
+    "uri": "https://generativelanguage.googleapis.com/v1beta/files/3pkhyzkh0wta",
+    "uploaded_at": "2026-01-16T11:14:01.110349+00:00",
+    "expires_at": "2026-01-18T11:14:00.451806+00:00",
+    "size_bytes": 81884446
   }
 }
