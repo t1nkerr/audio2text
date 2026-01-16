@@ -1,7 +1,7 @@
 SINGLE_PASS_PROMPT = f"""Generate a clean, readable English-language transcript of this entire podcast episode.
 
 #background:
-The podcast is produced by Trivium China, a consultancy on China policy. The speakers are usually Andrew Polk, Dinny Macmahon, Kendra Schaefer, Joe Mazur, Ether Yin, Joe Peissel, and occasionally other guests.
+The podcast is produced by Trivium China, a consultancy on China policy. The speakers are usually Andrew Polk, Dinny Macmahon, Kendra Schaefer, Joe Mazur, Ether Yin, Joe Peissel, Trey McArver, and occasionally other guests.
 
 #instructions:
 - Identify speaker names based on the conversation and label them consistently throughout

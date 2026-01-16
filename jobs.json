@@ -6,5 +6,23 @@
     "uploaded_at": "2026-01-16T06:15:07.885915+00:00",
     "expires_at": "2026-01-18T06:15:07.116592+00:00",
     "size_bytes": 158576735
+  },
+  "audio/sample2.wav": {
+    "file_path": "audio/sample2.wav",
+    "uploaded_path": "audio/sample2.flac",
+    "name": "files/hhkf2jemy2xu",
+    "uri": "https://generativelanguage.googleapis.com/v1beta/files/hhkf2jemy2xu",
+    "uploaded_at": "2026-01-16T07:43:04.681388+00:00",
+    "expires_at": "2026-01-18T07:43:03.866186+00:00",
+    "size_bytes": 116352653
+  },
+  "audio/sample2.flac": {
+    "file_path": "audio/sample2.flac",
+    "uploaded_path": "audio/sample2.flac",
+    "name": "files/miugcp98epax",
+    "uri": "https://generativelanguage.googleapis.com/v1beta/files/miugcp98epax",
+    "uploaded_at": "2026-01-16T07:44:36.933817+00:00",
+    "expires_at": "2026-01-18T07:44:36.115345+00:00",
+    "size_bytes": 116352653
   }
 }

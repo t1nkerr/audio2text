@@ -1,16 +1,6 @@
-"""
-File manager for Gemini API uploads.
-Tracks uploaded files and handles expiration.
-
-Usage:
-    from file_manager import get_or_upload_file
-    
-    file_obj = get_or_upload_file("audio/sample.flac")
-    # Returns a Gemini file object ready to use
-"""
-
 from google import genai
 from keys.creds import GEMINI_API_KEY
+from pydub import AudioSegment
 import json
 import os
 from datetime import datetime, timezone
@@ -44,17 +34,43 @@ def is_expired(job: dict) -> bool:
     return now >= expires_at
 
 
-def upload_file(file_path: str) -> dict:
-    """Upload a file to Gemini and return job info."""
-    print(f"📤 Uploading {file_path}...")
+def convert_wav_to_flac(wav_path: str) -> str:
+    """Convert WAV file to FLAC format for more efficient upload."""
+    flac_path = wav_path.rsplit('.', 1)[0] + '.flac'
     
-    uploaded = client.files.upload(file=file_path)
+    print(f"🔄 Converting {wav_path} to FLAC...")
+    audio = AudioSegment.from_wav(wav_path)
+    audio.export(flac_path, format="flac")
+    
+    # Show size comparison
+    wav_size = os.path.getsize(wav_path) / (1024 * 1024)
+    flac_size = os.path.getsize(flac_path) / (1024 * 1024)
+    reduction = (1 - flac_size / wav_size) * 100
+    
+    print(f"✓ Converted: {flac_path}")
+    print(f"  WAV size: {wav_size:.2f} MB → FLAC size: {flac_size:.2f} MB ({reduction:.1f}% smaller)")
+    
+    return flac_path
+
+
+def upload_file(file_path: str) -> dict:
+    """Upload a file to Gemini and return job info. Converts WAV to FLAC first."""
+    
+    # Convert WAV to FLAC if needed
+    actual_upload_path = file_path
+    if file_path.lower().endswith('.wav'):
+        actual_upload_path = convert_wav_to_flac(file_path)
+    
+    print(f"📤 Uploading {actual_upload_path}...")
+    
+    uploaded = client.files.upload(file=actual_upload_path)
     
     # Get file info including expiration
     file_info = client.files.get(name=uploaded.name)
     
     job = {
         "file_path": file_path,
+        "uploaded_path": actual_upload_path,  # The actual file uploaded (may be converted FLAC)
         "name": uploaded.name,
         "uri": uploaded.uri,
         "uploaded_at": datetime.now(timezone.utc).isoformat(),

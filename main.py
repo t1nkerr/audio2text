@@ -7,7 +7,7 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Get the audio file (uses cached upload if available)
 print("Loading audio file...")
-file_obj = get_or_upload_file("audio/sample.flac")
+file_obj = get_or_upload_file("audio/sample2.flac")
 
 # Single-pass transcription
 print("\n📝 Generating transcript (single-pass)...")
@@ -20,7 +20,7 @@ response = client.models.generate_content(
 )
 
 # Save the transcript
-output_file = "transcript/single_pass_test.txt"
+output_file = "transcript/single_pass_test2.txt"
 with open(output_file, "w") as f:
     f.write(response.text)
 
