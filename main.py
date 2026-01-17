@@ -1,9 +1,10 @@
 from google import genai
 from keys.creds import GEMINI_API_KEY
 from file_manager import get_or_upload_file
-from prompts import SINGLE_PASS_PROMPT
+from prompts import TRIVIUM_PROMPT, CHINESE_PROMPT
 
 client = genai.Client(api_key=GEMINI_API_KEY)
+model = "gemini-2.5-flash"
 
 # Get the audio file (uses cached upload if available)
 print("Loading audio file...")
@@ -11,12 +12,12 @@ file_obj = get_or_upload_file("audio/sample2.flac")
 
 # Single-pass transcription
 print("\n📝 Generating transcript (single-pass)...")
-print(f"Model: gemini-3-flash-preview")
+print(f"Model: {model}")
 print(f"This may take a few minutes for a ~52 min file...\n")
 
 response = client.models.generate_content(
-    model="gemini-3-flash-preview",
-    contents=[SINGLE_PASS_PROMPT, file_obj]
+    model=model,
+    contents=[TRIVIUM_PROMPT, file_obj]
 )
 
 # Save the transcript

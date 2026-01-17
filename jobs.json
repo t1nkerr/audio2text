@@ -33,5 +33,14 @@
     "uploaded_at": "2026-01-16T11:14:01.110349+00:00",
     "expires_at": "2026-01-18T11:14:00.451806+00:00",
     "size_bytes": 81884446
+  },
+  "audio/sample_10mins.flac": {
+    "file_path": "audio/sample_10mins.flac",
+    "uploaded_path": "audio/sample_10mins.flac",
+    "name": "files/zqbm5a3610iq",
+    "uri": "https://generativelanguage.googleapis.com/v1beta/files/zqbm5a3610iq",
+    "uploaded_at": "2026-01-17T00:59:33.171655+00:00",
+    "expires_at": "2026-01-19T00:59:32.482084+00:00",
+    "size_bytes": 30162347
   }
 }
