@@ -1,4 +1,4 @@
-TRIVIUM_PROMPT = f"""Generate a clean, readable English-language transcript of this entire podcast episode.
+TRIVIUM_PROMPT = """Generate a clean, readable English-language transcript of this entire podcast episode.
 
 #background:
 The podcast is produced by Trivium China, a consultancy on China policy. The speakers are usually Andrew Polk, Dinny Macmahon, Kendra Schaefer, Joe Mazur, Ether Yin, Joe Peissel, Trey McArver, and occasionally other guests.
@@ -27,8 +27,9 @@ The podcast is produced by Trivium China, a consultancy on China policy. The spe
 """
 
 
-# Build prompt with episode context
-CHINESE_PROMPT = f"""你的任务是逐字转录这段中文播客节目的对话。
+def build_chinese_prompt(episode: dict) -> str:
+    """Build Chinese transcription prompt with episode context."""
+    return f"""你的任务是逐字转录这段中文播客节目的对话。
 
 #podcast show notes for background:
 {episode['show_notes']}

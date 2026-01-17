@@ -1,8 +1,9 @@
 from google import genai
 from keys.creds import GEMINI_API_KEY
 from file_manager import get_or_upload_file
+from google.genai.types import GenerateContentConfig
 import json
-from prompts import CHINESE_PROMPT
+from prompts import build_chinese_prompt
 
 # Load episode info
 with open("episodes.json", "r", encoding="utf-8") as f:
@@ -20,6 +21,9 @@ AUDIO_FILE = "audio/episode_148.mp3"
 client = genai.Client(api_key=GEMINI_API_KEY)
 model = "gemini-2.5-flash"
 
+# Build prompt with episode context
+CHINESE_PROMPT = build_chinese_prompt(episode)
+
 # Get the audio file (uses cached upload if available)
 print("\n📤 Loading audio file...")
 file_obj = get_or_upload_file(AUDIO_FILE)
@@ -32,7 +36,10 @@ print(f"This is an 85-minute episode, may take several minutes...\n")
 
 response = client.models.generate_content(
     model=model,
-    contents=[CHINESE_PROMPT, file_obj]
+    contents=[CHINESE_PROMPT, file_obj],
+    config=GenerateContentConfig(
+        thinking_config={'thinking_budget': 0}  # Disable thinking to avoid timeout
+    )
 )
 
 # Save the transcript
