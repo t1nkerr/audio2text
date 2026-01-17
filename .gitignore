@@ -1,2 +1,38 @@
+# API Keys and Credentials
 /keys
+keys/
+*.env
+.env
+
+# Audio files (large)
 /audio
+audio/
+
+# Transcripts (can be regenerated)
+/transcript
+transcript/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Jobs registry (contains file URIs)
+jobs.json
+
+# Test files
+test_*.py
+test_*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
